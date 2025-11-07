@@ -46,7 +46,7 @@ public class User{
     /**
      * 班级
      */
-    @TableField("class")
+    @TableField("userClass")
     private String userClass;
 
     /**
