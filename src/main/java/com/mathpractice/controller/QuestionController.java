@@ -66,6 +66,35 @@ public class QuestionController {
         }
     }
 
+    // 修改题目（老师用）
+    // 获取单个题目详情
+    @GetMapping("/{questionId}")
+    public ApiResponse<Question> getQuestionById(@PathVariable Integer questionId) {
+        try {
+            Question question = questionService.getById(questionId);
+            if (question != null) {
+                return ApiResponse.success(question);
+            } else {
+                return ApiResponse.error("题目不存在");
+            }
+        } catch (Exception e) {
+            return ApiResponse.error("获取题目失败: " + e.getMessage());
+        }
+    }
+    @PutMapping("/{questionId}")
+    public ApiResponse<Object> updateQuestion(@PathVariable Integer questionId, @RequestBody Question question) {
+        try {
+            boolean updated = questionService.updateById(question);
+            if (updated) {
+                return ApiResponse.success("题目修改成功");
+            } else {
+                return ApiResponse.error("题目修改失败，题目可能不存在");
+            }
+        } catch (Exception e) {
+            return ApiResponse.error("修改题目失败: " + e.getMessage());
+        }
+    }
+
     // 删除题目 - 简化逻辑，只需要题目ID
     @DeleteMapping("/{questionId}")
     public ApiResponse<Object> deleteQuestion(@PathVariable Integer questionId) {

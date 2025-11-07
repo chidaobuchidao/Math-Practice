@@ -1,6 +1,7 @@
 package com.mathpractice.controller;
 
 import com.mathpractice.dto.GeneratePaperRequest;
+import com.mathpractice.dto.SubmitPaperRequest;
 import com.mathpractice.entity.Paper;
 import com.mathpractice.response.ApiResponse;
 import com.mathpractice.service.PaperService;
@@ -48,6 +49,30 @@ public class PaperController {
             return ApiResponse.success(paperDetail);
         } catch (Exception e) {
             return ApiResponse.error("获取试卷详情失败: " + e.getMessage());
+        }
+    }
+
+    // 获取所有试卷（老师用）
+    @GetMapping("/all")
+    public ApiResponse<List<Paper>> getAllPapers() {
+        try {
+            List<Paper> papers = paperService.getAllPapers();
+            return ApiResponse.success(papers);
+        } catch (Exception e) {
+            return ApiResponse.error("获取试卷列表失败: " + e.getMessage());
+        }
+    }
+
+    // 提交试卷答案
+    @PostMapping("/{paperId}/submit")
+    public ApiResponse<Paper> submitPaper(
+            @PathVariable Integer paperId,
+            @RequestBody SubmitPaperRequest request) {
+        try {
+            Paper paper = paperService.submitPaper(paperId, request);
+            return ApiResponse.success(paper);
+        } catch (Exception e) {
+            return ApiResponse.error("提交试卷失败: " + e.getMessage());
         }
     }
 

@@ -2,6 +2,7 @@ package com.mathpractice.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.mathpractice.dto.GeneratePaperRequest;
+import com.mathpractice.dto.SubmitPaperRequest;
 import com.mathpractice.entity.Paper;
 import com.mathpractice.entity.PaperQuestion;
 import com.mathpractice.entity.Question;
@@ -42,7 +43,8 @@ public class PaperServiceImpl extends ServiceImpl<PaperMapper, Paper> implements
             paper.setTitle(request.getTitle());
             paper.setTotalQuestions(selectedQuestions.size());
             paper.setCorrectCount(0);
-            paper.setScore(BigDecimal.ZERO);
+            // 修改这里：新生成的试卷 score 应该为 null，而不是 0
+            paper.setScore(null);  // 改为 null 表示未完成
             paper.setTimeSpent(0);
 
             this.save(paper);
@@ -68,10 +70,64 @@ public class PaperServiceImpl extends ServiceImpl<PaperMapper, Paper> implements
     }
 
     @Override
+    @Transactional
+    public Paper submitPaper(Integer paperId, SubmitPaperRequest request) {
+        // 1. 获取试卷
+        Paper paper = this.getById(paperId);
+        if (paper == null) {
+            throw new BusinessException("试卷不存在");
+        }
+
+        // 2. 获取试卷关联的题目
+        List<PaperQuestion> paperQuestions = paperQuestionMapper.selectByPaperId(paperId);
+
+        int correctCount = 0;
+
+        // 3. 批改每道题目
+        for (PaperQuestion paperQuestion : paperQuestions) {
+            Integer questionId = paperQuestion.getQuestionId();
+            Double studentAnswer = request.getAnswers().get(questionId);
+            Question question = questionMapper.selectById(questionId);
+
+            // 设置学生答案
+            paperQuestion.setStudentAnswer(studentAnswer != null ? BigDecimal.valueOf(studentAnswer) : null);
+
+            // 判断是否正确（考虑浮点数精度）
+            boolean isCorrect = studentAnswer != null &&
+                    question.getAnswer() != null &&
+                    Math.abs(studentAnswer - question.getAnswer().doubleValue()) < 0.01;
+
+
+            paperQuestion.setIsCorrect(isCorrect);
+
+            if (isCorrect) {
+                correctCount++;
+            }
+
+            // 更新题目答案记录
+            paperQuestionMapper.updateById(paperQuestion);
+        }
+
+        // 4. 更新试卷信息
+        paper.setCorrectCount(correctCount);
+        paper.setScore(request.getScore() != null ? request.getScore() :
+                (double) correctCount / paper.getTotalQuestions() * 100);
+        paper.setTimeSpent(request.getTimeSpent());
+
+        this.updateById(paper);
+
+        return paper;
+    }
+
+    @Override
     public List<Paper> getStudentPapers(Integer studentId) {
         return baseMapper.selectByStudentId(studentId);
     }
 
+    @Override
+    public List<Paper> getAllPapers() {
+        return baseMapper.selectList(null);
+    }
     @Override
     public Map<String, Object> getPaperWithQuestions(Integer paperId) {
         Map<String, Object> result = new HashMap<>();

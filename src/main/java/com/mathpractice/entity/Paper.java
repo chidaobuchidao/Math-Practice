@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.annotation.*;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.experimental.Accessors;
 
 import java.math.BigDecimal;
@@ -16,6 +18,8 @@ import java.time.LocalDateTime;
  * @since 2025-11-06
  */
 @Data
+@Getter
+@Setter
 @EqualsAndHashCode(callSuper = false)
 @Accessors(chain = true)
 @TableName("papers")
@@ -54,7 +58,7 @@ public class Paper {
      * 得分（满分100分）
      */
     @TableField("score")
-    private BigDecimal score;
+    private Double score;
 
     /**
      * 花费时间（单位：秒）
