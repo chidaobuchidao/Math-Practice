@@ -10,7 +10,10 @@ public enum ResponseCode {
     SUCCESS(200, "操作成功"),
     ERROR(500, "操作失败"),
 
-    USERNAME_EXISTS(1001, "用户名已存在");
+    USERNAME_EXISTS(1001, "用户名已存在"),
+    
+    QUESTION_NOT_ENOUGH(4003, "题目数量不足"),
+    PAPER_GENERATE_FAILED(4004, "试卷生成失败");
 
     /**
      * 响应码
