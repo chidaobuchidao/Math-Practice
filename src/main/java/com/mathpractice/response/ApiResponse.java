@@ -7,7 +7,7 @@ public class ApiResponse<T> {
     /**
      * 响应码
      */
-    private Integer code;
+    private final Integer code;
     /**
      * 响应信息
      */
