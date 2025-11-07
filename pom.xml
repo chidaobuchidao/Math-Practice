@@ -65,6 +65,13 @@
             <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
             <version>3.5.14</version>
         </dependency>
+        <!--pagehelper-->
+        <dependency>
+            <groupId>com.github.pagehelper</groupId>
+            <artifactId>pagehelper-spring-boot-starter</artifactId>
+            <version>2.1.0</version>
+        </dependency>
+
     </dependencies>
 
     <build>
