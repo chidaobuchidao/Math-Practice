@@ -10,7 +10,15 @@ public enum ResponseCode {
     SUCCESS(200, "操作成功"),
     ERROR(500, "操作失败"),
 
-    USERNAME_EXISTS(1001, "用户名已存在");
+    USERNAME_EXISTS(1001, "用户名已存在"),
+
+    // 新增的响应码
+    UNAUTHORIZED(401, "未授权访问"),
+    FORBIDDEN(403, "权限不足"),
+    NOT_FOUND(404, "资源不存在"),
+    VALIDATION_ERROR(1002, "参数验证失败"),
+    USER_NOT_FOUND(1003, "用户不存在"),
+    PASSWORD_ERROR(1004, "密码错误");
 
     /**
      * 响应码

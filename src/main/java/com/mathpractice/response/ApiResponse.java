@@ -55,4 +55,37 @@ public class ApiResponse<T> {
     public static <T> ApiResponse<T> error(Integer code, String message) {
         return new ApiResponse<>(code, message);
     }
+
+    public static <T> ApiResponse<T> unauthorized() {
+        return new ApiResponse<>(ResponseCode.UNAUTHORIZED.getCode(), ResponseCode.UNAUTHORIZED.getMessage());
+    }
+
+    public static <T> ApiResponse<T> unauthorized(String message) {
+        return new ApiResponse<>(ResponseCode.UNAUTHORIZED.getCode(), message);
+    }
+
+    public static <T> ApiResponse<T> forbidden() {
+        return new ApiResponse<>(ResponseCode.FORBIDDEN.getCode(), ResponseCode.FORBIDDEN.getMessage());
+    }
+
+    public static <T> ApiResponse<T> forbidden(String message) {
+        return new ApiResponse<>(ResponseCode.FORBIDDEN.getCode(), message);
+    }
+
+    public static <T> ApiResponse<T> notFound() {
+        return new ApiResponse<>(ResponseCode.NOT_FOUND.getCode(), ResponseCode.NOT_FOUND.getMessage());
+    }
+
+    public static <T> ApiResponse<T> notFound(String message) {
+        return new ApiResponse<>(ResponseCode.NOT_FOUND.getCode(), message);
+    }
+
+    public static <T> ApiResponse<T> validationError() {
+        return new ApiResponse<>(ResponseCode.VALIDATION_ERROR.getCode(), ResponseCode.VALIDATION_ERROR.getMessage());
+    }
+
+    public static <T> ApiResponse<T> validationError(String message) {
+        return new ApiResponse<>(ResponseCode.VALIDATION_ERROR.getCode(), message);
+    }
+
 }
