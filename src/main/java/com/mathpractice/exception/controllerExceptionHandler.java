@@ -13,4 +13,9 @@ public class controllerExceptionHandler {
     public ApiResponse<Object> handleException(Exception e) {
         return ApiResponse.error(e.getMessage());
     }
+
+    @ExceptionHandler(BusinessException.class)
+    public ApiResponse<Object> handleBusinessException(BusinessException e) {
+        return ApiResponse.error(e.getCode(), e.getMessage());
+    }
 }
