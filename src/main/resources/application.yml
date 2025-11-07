@@ -15,3 +15,12 @@ spring:
 
   autoconfigure:
     exclude: org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+
+mybatis-plus:
+  configuration:
+    # 开启驼峰命名
+    map-underscore-to-camel-case: true
+    # 打印sql
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  # 实体扫描
+  type-handlers-package: com.mathpractice.entity
