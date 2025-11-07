@@ -6,10 +6,11 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * 用户表
+ * 试卷表实体
  *
  * @author chidao
  * @since 2025-11-06
@@ -17,40 +18,52 @@ import java.time.LocalDateTime;
 @Data
 @EqualsAndHashCode(callSuper = false)
 @Accessors(chain = true)
-@TableName("users")
-public class User{
+@TableName("papers")
+public class Paper {
     /**
-     * 主键ID
+     * 试卷ID，主键
      */
     @TableId(value = "id", type = IdType.AUTO)
     private Integer id;
 
     /**
-     * 用户名
+     * 学生ID
      */
-    @TableField("username")
-    private String username;
+    @TableField("student_id")
+    private Integer studentId;
 
     /**
-     * 密码
+     * 试卷标题
      */
-    @TableField("password")
-    private String password;
+    @TableField("title")
+    private String title;
 
     /**
-     * 角色身份（student/teacher）
+     * 题目总数
      */
-    @TableField("role")
-    private String role;
+    @TableField("total_questions")
+    private Integer totalQuestions;
 
     /**
-     * 班级
+     * 答对题目数量
      */
-    @TableField("userClass")
-    private String userClass;
+    @TableField("correct_count")
+    private Integer correctCount;
 
     /**
-     * 注册时间
+     * 得分（满分100分）
+     */
+    @TableField("score")
+    private BigDecimal score;
+
+    /**
+     * 花费时间（单位：秒）
+     */
+    @TableField("time_spent")
+    private Integer timeSpent;
+
+    /**
+     * 创建时间（开始答题时间）
      */
     @TableField(value = "created_at", fill = FieldFill.INSERT)
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
