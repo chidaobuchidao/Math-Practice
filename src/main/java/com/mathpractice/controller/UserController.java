@@ -1,7 +1,12 @@
 package com.mathpractice.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.github.pagehelper.PageHelper;
+import com.github.pagehelper.PageInfo;
 import com.mathpractice.entity.User;
+import com.mathpractice.exception.BusinessException;
 import com.mathpractice.response.ApiResponse;
+import com.mathpractice.response.ResponseCode;
 import com.mathpractice.service.UserService;
 import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.*;
@@ -21,15 +26,34 @@ public class UserController {
     @Resource
     private UserService userService;
 
+    /**
+     * 添加用户
+     */
     @PostMapping("/add")
     public ApiResponse<Object> addUser(@RequestBody User user) {
-        boolean isSaved = userService.save(user);
+        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(User::getUsername, user.getUsername());
+        if (userService.count(queryWrapper) > 0) {
+            throw new BusinessException(ResponseCode.USERNAME_EXISTS);
+        }
+        userService.save(user);
         return ApiResponse.success();
     }
 
     @GetMapping("/list")
-    public ApiResponse<List<User>> list() {
-        return ApiResponse.success(userService.list());
+    public ApiResponse<PageInfo<User>> list(User user,
+                                            @RequestParam(defaultValue = "1") Integer pageNum,
+                                            @RequestParam(defaultValue = "10") Integer pageSize) {
+        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.like(user.getUsername() != null, User::getUsername, user.getUsername());
+        queryWrapper.like(user.getRole() != null, User::getRole, user.getRole());
+        queryWrapper.like(user.getUserClass() != null, User::getUserClass, user.getUserClass());
+
+        PageHelper.startPage(pageNum, pageSize);
+        List<User> userList = userService.list(queryWrapper); // 执行查询
+        PageInfo<User> userPageInfo = new PageInfo<>(userList); // 将结果包装成分页信息
+
+        return ApiResponse.success(userPageInfo); // 返回分页数据
     }
 
     @PostMapping("/login")
@@ -41,6 +65,9 @@ public class UserController {
         return ApiResponse.error("用户名或密码错误");
     }
 
+    /**
+     * 注册
+     */
     @PostMapping("/register")
     public ApiResponse<Object> register(@RequestBody User user) {
         boolean success = userService.register(user);
