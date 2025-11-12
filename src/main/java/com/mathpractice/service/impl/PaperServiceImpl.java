@@ -14,6 +14,8 @@ import com.mathpractice.service.PaperService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.mathpractice.entity.WrongQuestion;
+import com.mathpractice.mapper.WrongQuestionMapper;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
@@ -26,6 +28,7 @@ public class PaperServiceImpl extends ServiceImpl<PaperMapper, Paper> implements
 
     private final QuestionMapper questionMapper;
     private final PaperQuestionMapper paperQuestionMapper;
+    private final WrongQuestionMapper wrongQuestionMapper;
 
     @Override
     @Transactional
@@ -43,7 +46,6 @@ public class PaperServiceImpl extends ServiceImpl<PaperMapper, Paper> implements
             paper.setTitle(request.getTitle());
             paper.setTotalQuestions(selectedQuestions.size());
             paper.setCorrectCount(0);
-            // 修改这里：新生成的试卷 score 应该为 null，而不是 0
             paper.setScore(null);  // 改为 null 表示未完成
             paper.setTimeSpent(0);
 
@@ -69,6 +71,7 @@ public class PaperServiceImpl extends ServiceImpl<PaperMapper, Paper> implements
         }
     }
 
+    // 修改 submitPaper 方法，在批改题目时记录错题
     @Override
     @Transactional
     public Paper submitPaper(Integer paperId, SubmitPaperRequest request) {
@@ -97,11 +100,13 @@ public class PaperServiceImpl extends ServiceImpl<PaperMapper, Paper> implements
                     question.getAnswer() != null &&
                     Math.abs(studentAnswer - question.getAnswer().doubleValue()) < 0.01;
 
-
             paperQuestion.setIsCorrect(isCorrect);
 
             if (isCorrect) {
                 correctCount++;
+            } else {
+                // 记录错题 - 新增代码
+                recordWrongQuestion(paper.getStudentId(), questionId, studentAnswer, paperId);
             }
 
             // 更新题目答案记录
@@ -144,5 +149,21 @@ public class PaperServiceImpl extends ServiceImpl<PaperMapper, Paper> implements
         result.put("questions", questions);
 
         return result;
+    }
+
+    // 新增方法：记录错题
+    private void recordWrongQuestion(Integer studentId, Integer questionId, Double wrongAnswer, Integer paperId) {
+        try {
+            WrongQuestion wrongQuestion = new WrongQuestion();
+            wrongQuestion.setStudentId(studentId);
+            wrongQuestion.setQuestionId(questionId);
+            wrongQuestion.setWrongAnswer(wrongAnswer != null ? BigDecimal.valueOf(wrongAnswer) : null);
+            wrongQuestion.setPaperId(paperId);
+
+            wrongQuestionMapper.insert(wrongQuestion);
+        } catch (Exception e) {
+            // 记录错题失败不影响主流程，但记录日志
+            System.err.println("记录错题失败: " + e.getMessage());
+        }
     }
 }
