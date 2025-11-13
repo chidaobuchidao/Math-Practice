@@ -12,6 +12,12 @@ import lombok.RequiredArgsConstructor;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 试卷控制器
+ *
+ * @author chidao
+ * @since 2025-11-08
+ */
 @RestController
 @RequestMapping("/papers")
 @RequiredArgsConstructor

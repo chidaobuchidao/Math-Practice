@@ -2,6 +2,7 @@ package com.mathpractice.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.mathpractice.entity.WrongQuestion;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
@@ -25,7 +26,7 @@ public interface WrongQuestionMapper extends BaseMapper<WrongQuestion> {
     /**
      * 根据题目ID和学生ID删除错题记录
      */
-    @Select("DELETE FROM wrong_questions WHERE student_id = #{studentId} AND question_id = #{questionId}")
+    @Delete("DELETE FROM wrong_questions WHERE student_id = #{studentId} AND question_id = #{questionId}")
     int deleteByStudentAndQuestion(@Param("studentId") Integer studentId, @Param("questionId") Integer questionId);
 
     /**

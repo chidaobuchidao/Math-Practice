@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 
 public interface QuestionService extends IService<Question> {
+    // 批量保存题目
+    boolean saveBatch(List<Question> questions);
 
     // 获取题目库（按条件筛选）
     List<Question> getQuestionBank(String type, String difficulty);

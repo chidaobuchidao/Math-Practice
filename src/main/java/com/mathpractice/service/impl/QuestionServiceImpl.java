@@ -43,11 +43,16 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         Map<String, Object> options = new HashMap<>();
 
         // 题目类型选项
-        options.put("types", new String[]{"AddAdnSub", "MulAndDiv", "Mixed"});
+        options.put("types", new String[]{"AddAndSub", "MulAndDiv", "Mixed"});
 
         // 难度等级选项
         options.put("difficulties", new String[]{"easy", "medium", "hard"});
 
         return options;
+    }
+
+    @Override
+    public boolean saveBatch(List<Question> questions) {
+        return super.saveBatch(questions);
     }
 }

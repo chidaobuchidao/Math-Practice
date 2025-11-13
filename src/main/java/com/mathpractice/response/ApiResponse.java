@@ -44,6 +44,11 @@ public class ApiResponse<T> {
         return new ApiResponse<>(ResponseCode.SUCCESS.getCode(), ResponseCode.SUCCESS.getMessage(), data);
     }
 
+    public static <T> ApiResponse<T> success(T data, String message) {
+        return new ApiResponse<>(ResponseCode.SUCCESS.getCode(), message, data);
+    }
+
+
     public static <T> ApiResponse<T> error() {
         return new ApiResponse<>(ResponseCode.ERROR.getCode(), ResponseCode.ERROR.getMessage());
     }
