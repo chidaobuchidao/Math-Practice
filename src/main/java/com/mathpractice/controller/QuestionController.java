@@ -9,6 +9,12 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 题目控制器
+ *
+ * @author chidao
+ * @since 2025-11-07
+ */
 @RestController
 @RequestMapping("/questions")
 @RequiredArgsConstructor
