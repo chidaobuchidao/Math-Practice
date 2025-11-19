@@ -1,7 +1,5 @@
 package com.mathpractice.service;
 
-import com.mathpractice.entity.WrongQuestion;
-
 import java.util.List;
 import java.util.Map;
 
@@ -26,4 +24,19 @@ public interface WrongQuestionService {
      * 清空学生的错题集
      */
     boolean clearWrongQuestions(Integer studentId);
+
+    /**
+     * 检查是否已存在错题记录
+     */
+    boolean existsWrongQuestion(Integer studentId, Integer questionId);
+
+    /**
+     * 记录错题（学生做题时调用，自动去重）
+     */
+    boolean recordWrongQuestion(Integer studentId, Integer questionId, String wrongAnswer, Integer paperId);
+
+    /**
+     * 批量记录错题（试卷提交时调用，自动去重）
+     */
+    boolean batchRecordWrongQuestions(Integer studentId, Map<Integer, String> wrongAnswers, Integer paperId);
 }

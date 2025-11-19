@@ -1,65 +1,53 @@
 package com.mathpractice.entity;
 
-import com.baomidou.mybatisplus.annotation.*;
-import com.fasterxml.jackson.annotation.JsonFormat;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.experimental.Accessors;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.sql.Timestamp;
+import java.util.List;
 
-/**
- * 题目库实体
- *
- * @author chidao
- * @since 2025-11-06
- */
 @Data
-@EqualsAndHashCode(callSuper = false)
-@Accessors(chain = true)
 @TableName("questions")
 public class Question {
-    /**
-     * 题目ID，主键
-     */
-    @TableId(value = "id", type = IdType.AUTO)
+    @TableId(type = IdType.AUTO)
     private Integer id;
 
-    /**
-     * 题目内容
-     */
-    @TableField("content")
+    @TableField("type_id")
+    private Integer typeId;
+
+    @TableField("difficulty_id")
+    private Integer difficultyId;
+
+    private String subject;
+
+    @TableField("knowledge_point")
+    private String knowledgePoint;
+
     private String content;
+    private String analysis;
 
-    /**
-     * 题目类型：AddAndSub-加减运算，MulAndDiv-乘除运算，Mixed-混合运算
-     */
-    @TableField("type")
-    private String type;
-
-    /**
-     * 难度等级：easy-简单，medium-中等，hard-困难
-     */
-    @TableField("difficulty")
-    private String difficulty;
-
-    /**
-     * 标准答案（保留2位小数）
-     */
-    @TableField("answer")
-    private BigDecimal answer;
-
-    /**
-     * 创建者ID（老师ID）
-     */
     @TableField("created_by")
     private Integer createdBy;
 
-    /**
-     * 创建时间
-     */
-    @TableField(value = "created_at", fill = FieldFill.INSERT)
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime createdAt;
+    @TableField("created_at")
+    private Timestamp createdAt;
+
+    // 关联字段 - 必须标记为不存在于表中
+    @TableField(exist = false)
+    private QuestionAnswer questionAnswer;  // 如果存在这个字段，确保有 exist = false
+
+    @TableField(exist = false)
+    private List<QuestionAnswer> answers;
+
+    @TableField(exist = false)
+    private List<QuestionOption> options;
+
+    @TableField(exist = false)
+    private QuestionType questionType;
+
+    @TableField(exist = false)
+    private DifficultyLevel difficultyLevel;
 }

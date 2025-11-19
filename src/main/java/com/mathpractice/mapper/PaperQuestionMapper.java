@@ -12,10 +12,9 @@ import java.util.List;
 @Mapper
 public interface PaperQuestionMapper extends BaseMapper<PaperQuestion> {
 
-    @Select("SELECT * FROM paper_questions WHERE paper_id = #{paperId}")
+    @Select("SELECT pq.* FROM paper_questions pq WHERE pq.paper_id = #{paperId}")
     List<PaperQuestion> selectByPaperId(@Param("paperId") Integer paperId);
 
-    // 获取试卷的题目详情
     @Select("SELECT q.* FROM questions q " +
             "INNER JOIN paper_questions pq ON q.id = pq.question_id " +
             "WHERE pq.paper_id = #{paperId}")

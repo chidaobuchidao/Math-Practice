@@ -3,6 +3,7 @@ package com.mathpractice.util;
 
 import com.mathpractice.dto.QuestionGenerationRequest;
 import com.mathpractice.entity.Question;
+import com.mathpractice.entity.QuestionAnswer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -23,6 +24,15 @@ import java.util.Random;
 public class QuestionGeneratorTool {
 
     private final Random random = new Random();
+
+    // 类型映射
+    private static final String TYPE_CALCULATION = "calculation"; // 计算题
+    private static final String TYPE_WORD_PROBLEM = "word_problem"; // 应用题
+
+    // 难度映射
+    private static final String DIFFICULTY_EASY = "easy";
+    private static final String DIFFICULTY_MEDIUM = "medium";
+    private static final String DIFFICULTY_HARD = "hard";
 
     /**
      * 生成题目列表
@@ -54,8 +64,26 @@ public class QuestionGeneratorTool {
     private Question generateSingleQuestion(String type, String difficulty,
                                             QuestionGenerationRequest.NumberRange range) {
         Question question = new Question();
-        question.setType(type);
-        question.setDifficulty(difficulty);
+
+        // 设置新数据库结构所需的字段
+        question.setTypeId(5); // 5对应计算题类型
+        question.setSubject("数学");
+        question.setKnowledgePoint(generateKnowledgePoint(type));
+
+        // 设置难度ID映射
+        switch (difficulty) {
+            case "easy":
+                question.setDifficultyId(2); // 2对应简单难度
+                break;
+            case "medium":
+                question.setDifficultyId(3); // 3对应中等难度
+                break;
+            case "hard":
+                question.setDifficultyId(4); // 4对应困难难度
+                break;
+            default:
+                question.setDifficultyId(2); // 默认简单难度
+        }
 
         switch (type) {
             case "AddAndSub":
@@ -72,6 +100,22 @@ public class QuestionGeneratorTool {
         }
 
         return question;
+    }
+
+    /**
+     * 生成知识点
+     */
+    private String generateKnowledgePoint(String type) {
+        switch (type) {
+            case "AddAndSub":
+                return "加减法运算";
+            case "MulAndDiv":
+                return "乘除法运算";
+            case "Mixed":
+                return "四则混合运算";
+            default:
+                return "数学运算";
+        }
     }
 
     /**
@@ -143,7 +187,16 @@ public class QuestionGeneratorTool {
         }
 
         question.setContent(content);
-        question.setAnswer(answer);
+
+        // 创建答案对象
+        QuestionAnswer questionAnswer = new QuestionAnswer();
+        questionAnswer.setAnswerType("number");
+        questionAnswer.setContent(answer.toString());
+        questionAnswer.setIsCorrect(true);
+        questionAnswer.setSortOrder(0);
+
+        question.setQuestionAnswer(questionAnswer);
+        question.setAnalysis(generateAnalysis(content, answer));
     }
 
     /**
@@ -214,7 +267,16 @@ public class QuestionGeneratorTool {
         }
 
         question.setContent(content);
-        question.setAnswer(answer);
+
+        // 创建答案对象
+        QuestionAnswer questionAnswer = new QuestionAnswer();
+        questionAnswer.setAnswerType("number");
+        questionAnswer.setContent(answer.toString());
+        questionAnswer.setIsCorrect(true);
+        questionAnswer.setSortOrder(0);
+
+        question.setQuestionAnswer(questionAnswer);
+        question.setAnalysis(generateAnalysis(content, answer));
     }
 
     /**
@@ -249,12 +311,27 @@ public class QuestionGeneratorTool {
         }
 
         question.setContent(content);
-        question.setAnswer(answer);
+
+        // 创建答案对象
+        QuestionAnswer questionAnswer = new QuestionAnswer();
+        questionAnswer.setAnswerType("number");
+        questionAnswer.setContent(answer.toString());
+        questionAnswer.setIsCorrect(true);
+        questionAnswer.setSortOrder(0);
+
+        question.setQuestionAnswer(questionAnswer);
+        question.setAnalysis(generateAnalysis(content, answer));
     }
 
     /**
-     * 生成简单混合运算
+     * 生成题目解析
      */
+    private String generateAnalysis(String content, BigDecimal answer) {
+        String expression = content.replace(" = ?", "");
+        return "计算表达式: " + expression + " = " + answer + "。注意运算顺序和符号。";
+    }
+
+    // 以下方法保持不变...
     private String generateEasyMixed(QuestionGenerationRequest.NumberRange range) {
         int num1 = getRandomNumber(1, 10);
         int num2 = getRandomNumber(1, 10);
@@ -272,9 +349,6 @@ public class QuestionGeneratorTool {
         }
     }
 
-    /**
-     * 生成中等混合运算（带括号）
-     */
     private String generateMediumMixed(QuestionGenerationRequest.NumberRange range) {
         int num1 = getRandomNumber(1, 30);
         int num2 = getRandomNumber(1, 20);
@@ -289,9 +363,6 @@ public class QuestionGeneratorTool {
         }
     }
 
-    /**
-     * 生成困难混合运算
-     */
     private String generateHardMixed(QuestionGenerationRequest.NumberRange range) {
         int num1 = getRandomNumber(10, 50);
         int num2 = getRandomNumber(5, 30);
@@ -305,20 +376,15 @@ public class QuestionGeneratorTool {
         }
     }
 
-    /**
-     * 计算表达式结果
-     */
     private BigDecimal calculateExpression(String expression) {
         try {
             // 替换数学符号为Java可识别的运算符
             String javaExpr = expression.replace("×", "*").replace("÷", "/");
 
-            // 简单的表达式计算（实际项目中可以使用成熟的表达式计算库）
+            // 简单的表达式计算
             if (javaExpr.contains("(")) {
-                // 处理括号表达式
                 return evaluateWithBrackets(javaExpr);
             } else {
-                // 简单表达式直接计算
                 return evaluateSimpleExpression(javaExpr);
             }
         } catch (Exception e) {
@@ -327,16 +393,10 @@ public class QuestionGeneratorTool {
         }
     }
 
-    /**
-     * 计算带括号的表达式
-     */
     private BigDecimal evaluateWithBrackets(String expression) {
-        // 简化实现：实际项目中建议使用 ScriptEngine 或 exp4j 等库
         try {
-            // 移除所有空格
             expression = expression.replaceAll("\\s+", "");
 
-            // 这里使用JavaScript引擎计算（需要确保环境支持）
             javax.script.ScriptEngineManager manager = new javax.script.ScriptEngineManager();
             javax.script.ScriptEngine engine = manager.getEngineByName("JavaScript");
 
@@ -347,16 +407,11 @@ public class QuestionGeneratorTool {
             return BigDecimal.ZERO;
         } catch (Exception e) {
             log.error("计算带括号表达式失败: {}", expression, e);
-            // 备用方案：手动计算简单括号表达式
             return evaluateSimpleBrackets(expression);
         }
     }
 
-    /**
-     * 手动计算简单括号表达式（备用方案）
-     */
     private BigDecimal evaluateSimpleBrackets(String expression) {
-        // 简化实现，只处理简单情况
         try {
             if (expression.contains("(") && expression.contains(")")) {
                 String inner = expression.substring(expression.indexOf("(") + 1, expression.indexOf(")"));
@@ -378,9 +433,6 @@ public class QuestionGeneratorTool {
         }
     }
 
-    /**
-     * 计算简单表达式
-     */
     private BigDecimal evaluateSimpleExpression(String expression) {
         try {
             String[] parts = expression.split(" ");
@@ -404,46 +456,32 @@ public class QuestionGeneratorTool {
         }
     }
 
-    /**
-     * 工具方法：获取随机类型
-     */
     private String getRandomType(List<String> types) {
         if (types == null || types.isEmpty()) {
-            // 默认包含所有类型
             String[] allTypes = {"AddAndSub", "MulAndDiv", "Mixed"};
             return allTypes[random.nextInt(allTypes.length)];
         }
         return types.get(random.nextInt(types.size()));
     }
 
-    /**
-     * 工具方法：获取随机难度
-     */
     private String getRandomDifficulty(List<String> difficulties) {
         if (difficulties == null || difficulties.isEmpty()) {
-            // 默认包含所有难度
             String[] allDifficulties = {"easy", "medium", "hard"};
             return allDifficulties[random.nextInt(allDifficulties.length)];
         }
         return difficulties.get(random.nextInt(difficulties.size()));
     }
 
-    /**
-     * 工具方法：获取随机数
-     */
     private int getRandomNumber(int min, int max) {
         return random.nextInt(max - min + 1) + min;
     }
 
-    /**
-     * 工具方法：寻找能整除的除数
-     */
     private int findDivisor(int number) {
         for (int i = 2; i <= Math.sqrt(number); i++) {
             if (number % i == 0) {
                 return i;
             }
         }
-        return 1; // 如果找不到，返回1
+        return 1;
     }
 }

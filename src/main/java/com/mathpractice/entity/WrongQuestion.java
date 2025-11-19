@@ -6,7 +6,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
@@ -36,10 +35,10 @@ public class WrongQuestion {
     private Integer questionId;
 
     /**
-     * 学生的错误答案
+     * 学生的错误答案（文本格式，支持数字、分数、文本等）
      */
     @TableField("wrong_answer")
-    private BigDecimal wrongAnswer;
+    private String wrongAnswer;
 
     /**
      * 关联的试卷ID

@@ -22,7 +22,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/User")
 public class UserController {
-
     @Resource
     private UserService userService;
 
