@@ -3,15 +3,20 @@ package com.mathpractice.service.impl;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.mathpractice.dto.GeneratePaperRequest;
 import com.mathpractice.dto.SubmitPaperRequest;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.mathpractice.entity.Paper;
 import com.mathpractice.entity.PaperQuestion;
 import com.mathpractice.entity.Question;
 import com.mathpractice.entity.QuestionAnswer;
+import com.mathpractice.entity.QuestionOption;
+import com.mathpractice.entity.QuestionImage;
 import com.mathpractice.exception.BusinessException;
 import com.mathpractice.mapper.PaperMapper;
 import com.mathpractice.mapper.PaperQuestionMapper;
 import com.mathpractice.mapper.QuestionMapper;
 import com.mathpractice.mapper.QuestionAnswerMapper;
+import com.mathpractice.mapper.QuestionOptionMapper;
+import com.mathpractice.mapper.QuestionImageMapper;
 import com.mathpractice.service.PaperService;
 import com.mathpractice.service.WrongQuestionService;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +37,8 @@ public class PaperServiceImpl extends ServiceImpl<PaperMapper, Paper> implements
     private final QuestionMapper questionMapper;
     private final PaperQuestionMapper paperQuestionMapper;
     private final QuestionAnswerMapper questionAnswerMapper;
+    private final QuestionOptionMapper questionOptionMapper;
+    private final QuestionImageMapper questionImageMapper;
     private final WrongQuestionService wrongQuestionService; // 使用服务而非Mapper
 
     @Override
@@ -92,18 +100,76 @@ public class PaperServiceImpl extends ServiceImpl<PaperMapper, Paper> implements
         // 3. 批改每道题目
         for (PaperQuestion paperQuestion : paperQuestions) {
             Integer questionId = paperQuestion.getQuestionId();
-            Double studentAnswer = request.getAnswers().get(questionId);
+            Object studentAnswerObj = request.getAnswers().get(questionId);
 
             // 获取题目的正确答案
-            BigDecimal correctAnswer = getCorrectAnswer(questionId);
+            QuestionAnswer correctAnswerInfo = getCorrectAnswerInfo(questionId);
+            BigDecimal correctAnswer = correctAnswerInfo != null ? 
+                    parseAnswerToBigDecimal(correctAnswerInfo.getContent(), correctAnswerInfo.getAnswerType()) : null;
 
-            // 设置学生答案
-            paperQuestion.setStudentAnswer(studentAnswer != null ? BigDecimal.valueOf(studentAnswer) : null);
+            // 处理学生答案（支持数字和字符串）
+            Double studentAnswerDouble = null;
+            String studentAnswerString = null;
+            
+            if (studentAnswerObj != null) {
+                if (studentAnswerObj instanceof Number) {
+                    studentAnswerDouble = ((Number) studentAnswerObj).doubleValue();
+                } else if (studentAnswerObj instanceof String) {
+                    studentAnswerString = (String) studentAnswerObj;
+                    // 尝试将字符串转换为数字
+                    try {
+                        studentAnswerDouble = Double.parseDouble(studentAnswerString);
+                    } catch (NumberFormatException e) {
+                        // 如果无法转换为数字，可能是选择题的选项键（A, B, C, D）
+                        // 将选项键转换为数字存储：A=1, B=2, C=3, D=4, ...
+                        if (studentAnswerString != null && studentAnswerString.length() > 0) {
+                            // 去除空格并转换为大写
+                            String cleanAnswer = studentAnswerString.trim().toUpperCase();
+                            if (cleanAnswer.length() > 0) {
+                                char firstChar = cleanAnswer.charAt(0);
+                                if (firstChar >= 'A' && firstChar <= 'Z') {
+                                    // 单个选项键（如 'A'）或多选题的第一个选项键（如 'A,B'）
+                                    studentAnswerDouble = (double) (firstChar - 'A' + 1);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 
-            // 判断是否正确（考虑浮点数精度）
-            boolean isCorrect = studentAnswer != null &&
-                    correctAnswer != null &&
-                    Math.abs(studentAnswer - correctAnswer.doubleValue()) < 0.01;
+            // 设置学生答案到数据库（存储为 BigDecimal 或 null）
+            // 对于选择题，选项键已转换为数字（A=1, B=2, C=3, D=4）
+            paperQuestion.setStudentAnswer(studentAnswerDouble != null ? 
+                    BigDecimal.valueOf(studentAnswerDouble) : null);
+
+            // 判断是否正确
+            boolean isCorrect = false;
+            if (correctAnswerInfo != null) {
+                String answerType = correctAnswerInfo.getAnswerType();
+                
+                if ("text".equals(answerType) || "single".equals(answerType) || "multiple".equals(answerType)) {
+                    // 文本类型或选择题：直接比较字符串内容
+                    String correctContent = correctAnswerInfo.getContent();
+                    String studentContent = studentAnswerString != null ? studentAnswerString : 
+                            (studentAnswerDouble != null ? convertNumberToOptionKey(studentAnswerDouble.intValue()) : null);
+                    
+                    // 对于多选题，需要比较所有选项（排序后比较）
+                    if ("multiple".equals(answerType) && studentContent != null && correctContent != null) {
+                        String[] studentOptions = studentContent.split(",");
+                        String[] correctOptions = correctContent.split(",");
+                        Arrays.sort(studentOptions);
+                        Arrays.sort(correctOptions);
+                        isCorrect = Arrays.equals(studentOptions, correctOptions);
+                    } else {
+                        isCorrect = correctContent != null && correctContent.equals(studentContent);
+                    }
+                } else {
+                    // 数字类型或分数类型：数值比较
+                    isCorrect = studentAnswerDouble != null &&
+                            correctAnswer != null &&
+                            Math.abs(studentAnswerDouble - correctAnswer.doubleValue()) < 0.01;
+                }
+            }
 
             paperQuestion.setIsCorrect(isCorrect);
 
@@ -111,8 +177,8 @@ public class PaperServiceImpl extends ServiceImpl<PaperMapper, Paper> implements
                 correctCount++;
             } else {
                 // 记录错题信息（先收集，最后批量处理）
-                String wrongAnswerStr = studentAnswer != null ?
-                        formatWrongAnswer(studentAnswer) : "未作答";
+                String wrongAnswerStr = studentAnswerString != null ? studentAnswerString :
+                        (studentAnswerDouble != null ? formatWrongAnswer(studentAnswerDouble) : "未作答");
                 wrongAnswers.put(questionId, wrongAnswerStr);
             }
 
@@ -127,8 +193,10 @@ public class PaperServiceImpl extends ServiceImpl<PaperMapper, Paper> implements
 
         // 5. 更新试卷信息
         paper.setCorrectCount(correctCount);
-        paper.setScore(request.getScore() != null ? request.getScore() :
-                (double) correctCount / paper.getTotalQuestions() * 100);
+        // 计算得分并保留整数
+        double calculatedScore = request.getScore() != null ? request.getScore() :
+                (double) correctCount / paper.getTotalQuestions() * 100;
+        paper.setScore((double) Math.round(calculatedScore)); // 四舍五入到整数
         paper.setTimeSpent(request.getTimeSpent());
 
         this.updateById(paper);
@@ -152,9 +220,9 @@ public class PaperServiceImpl extends ServiceImpl<PaperMapper, Paper> implements
     }
 
     /**
-     * 获取题目的正确答案
+     * 获取题目的正确答案信息
      */
-    private BigDecimal getCorrectAnswer(Integer questionId) {
+    private QuestionAnswer getCorrectAnswerInfo(Integer questionId) {
         try {
             // 从 question_answers 表获取正确答案
             List<QuestionAnswer> answers = questionAnswerMapper.selectByQuestionId(questionId);
@@ -163,22 +231,7 @@ public class PaperServiceImpl extends ServiceImpl<PaperMapper, Paper> implements
                 // 查找正确答案（is_correct = true）
                 for (QuestionAnswer answer : answers) {
                     if (Boolean.TRUE.equals(answer.getIsCorrect())) {
-                        // 根据答案类型处理
-                        String answerType = answer.getAnswerType();
-                        String content = answer.getContent();
-
-                        switch (answerType) {
-                            case "number":
-                                return new BigDecimal(content);
-                            case "fraction":
-                                // 处理分数格式，如 "1/2"
-                                return parseFraction(content);
-                            case "text":
-                                // 文本答案无法直接比较数值，返回null
-                                return null;
-                            default:
-                                return new BigDecimal(content);
-                        }
+                        return answer;
                     }
                 }
             }
@@ -188,6 +241,59 @@ public class PaperServiceImpl extends ServiceImpl<PaperMapper, Paper> implements
             System.err.println("获取题目答案失败，题目ID: " + questionId + ", 错误: " + e.getMessage());
             return null;
         }
+    }
+
+    /**
+     * 将答案内容解析为 BigDecimal（用于数值比较）
+     */
+    private BigDecimal parseAnswerToBigDecimal(String content, String answerType) {
+        if (content == null) return null;
+        
+        try {
+            switch (answerType) {
+                case "number":
+                    return new BigDecimal(content);
+                case "fraction":
+                    // 处理分数格式，如 "1/2"
+                    return parseFraction(content);
+                case "text":
+                case "single":
+                case "multiple":
+                    // 文本类型或选择题，无法转换为数值
+                    return null;
+                default:
+                    // 尝试直接解析为数字
+                    try {
+                        return new BigDecimal(content);
+                    } catch (NumberFormatException e) {
+                        return null;
+                    }
+            }
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * 格式化答案为字符串（用于文本比较）
+     */
+    private String formatAnswer(Double answer) {
+        if (answer == null) return null;
+        if (answer == Math.floor(answer)) {
+            return String.valueOf(answer.intValue());
+        } else {
+            return String.format("%.2f", answer);
+        }
+    }
+    
+    /**
+     * 将数字转换为选项键（1=A, 2=B, 3=C, 4=D, ...）
+     */
+    private String convertNumberToOptionKey(int number) {
+        if (number >= 1 && number <= 26) {
+            return String.valueOf((char) ('A' + number - 1));
+        }
+        return String.valueOf(number);
     }
 
     /**
@@ -262,14 +368,47 @@ public class PaperServiceImpl extends ServiceImpl<PaperMapper, Paper> implements
             // 加载题目答案
             List<QuestionAnswer> answers = questionAnswerMapper.selectByQuestionId(question.getId());
             questionDetail.put("answers", answers);
+            
+            // 如果是选择题，加载选项
+            if (question.getTypeId() != null && (question.getTypeId() == 1 || question.getTypeId() == 2)) {
+                QueryWrapper<QuestionOption> optionWrapper = new QueryWrapper<>();
+                optionWrapper.eq("question_id", question.getId()).orderByAsc("sort_order");
+                List<QuestionOption> options = questionOptionMapper.selectList(optionWrapper);
+                questionDetail.put("options", options);
+            }
+            
+            // 加载图片
+            QueryWrapper<QuestionImage> imageWrapper = new QueryWrapper<>();
+            imageWrapper.eq("question_id", question.getId());
+            List<QuestionImage> images = questionImageMapper.selectList(imageWrapper);
+            questionDetail.put("images", images);
 
             // 学生答案和是否正确
             PaperQuestion paperQuestion = paperQuestionMap.get(question.getId());
             if (paperQuestion != null) {
-                // 将BigDecimal类型的studentAnswer转换为Double，便于前端处理
-                questionDetail.put("studentAnswer",
-                        paperQuestion.getStudentAnswer() != null ?
-                                paperQuestion.getStudentAnswer().doubleValue() : null);
+                // 处理学生答案：如果是选择题，需要将数字转换回选项键
+                Object studentAnswerValue = null;
+                if (paperQuestion.getStudentAnswer() != null) {
+                    Double answerDouble = paperQuestion.getStudentAnswer().doubleValue();
+                    // 判断是否为选择题
+                    if (question.getTypeId() != null && (question.getTypeId() == 1 || question.getTypeId() == 2)) {
+                        // 选择题：将数字转换回选项键（1=A, 2=B, 3=C, 4=D, ...）
+                        int optionIndex = answerDouble.intValue();
+                        if (optionIndex >= 1 && optionIndex <= 26) {
+                            // 对于多选题，需要检查是否有多个选项（通过检查原始答案字符串）
+                            // 但由于数据库只存储数字，我们只能返回第一个选项键
+                            // 注意：多选题的完整答案可能需要从其他地方获取，这里先返回单个选项键
+                            studentAnswerValue = String.valueOf((char) ('A' + optionIndex - 1));
+                        } else {
+                            // 如果不是有效的选项索引，直接返回数字字符串
+                            studentAnswerValue = answerDouble.toString();
+                        }
+                    } else {
+                        // 非选择题：直接返回数字
+                        studentAnswerValue = answerDouble;
+                    }
+                }
+                questionDetail.put("studentAnswer", studentAnswerValue);
                 questionDetail.put("isCorrect", paperQuestion.getIsCorrect());
             } else {
                 questionDetail.put("studentAnswer", null);

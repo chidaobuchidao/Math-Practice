@@ -1,7 +1,10 @@
 package com.mathpractice.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.mathpractice.entity.QuestionOption;
 import com.mathpractice.entity.WrongQuestion;
+import com.mathpractice.mapper.QuestionOptionMapper;
 import com.mathpractice.mapper.WrongQuestionMapper;
 import com.mathpractice.service.WrongQuestionService;
 import lombok.RequiredArgsConstructor;
@@ -17,10 +20,32 @@ import java.util.Map;
 public class WrongQuestionServiceImpl extends ServiceImpl<WrongQuestionMapper, WrongQuestion> implements WrongQuestionService {
 
     private final WrongQuestionMapper wrongQuestionMapper;
+    private final QuestionOptionMapper questionOptionMapper;
 
     @Override
     public List<Map<String, Object>> getWrongQuestionsWithDetail(Integer studentId) {
-        return wrongQuestionMapper.selectWrongQuestionsWithDetail(studentId);
+        List<Map<String, Object>> wrongQuestions = wrongQuestionMapper.selectWrongQuestionsWithDetail(studentId);
+        
+        // 为选择题加载选项
+        for (Map<String, Object> wrongQuestion : wrongQuestions) {
+            Object typeIdObj = wrongQuestion.get("type_id");
+            if (typeIdObj != null) {
+                Integer typeId = typeIdObj instanceof Integer ? (Integer) typeIdObj : Integer.parseInt(typeIdObj.toString());
+                // 如果是选择题（typeId = 1 或 2），加载选项
+                if (typeId == 1 || typeId == 2) {
+                    Object questionIdObj = wrongQuestion.get("question_id");
+                    if (questionIdObj != null) {
+                        Integer questionId = questionIdObj instanceof Integer ? (Integer) questionIdObj : Integer.parseInt(questionIdObj.toString());
+                        QueryWrapper<QuestionOption> optionWrapper = new QueryWrapper<>();
+                        optionWrapper.eq("question_id", questionId).orderByAsc("sort_order");
+                        List<QuestionOption> options = questionOptionMapper.selectList(optionWrapper);
+                        wrongQuestion.put("options", options);
+                    }
+                }
+            }
+        }
+        
+        return wrongQuestions;
     }
 
     @Override

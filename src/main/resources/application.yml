@@ -16,6 +16,13 @@ spring:
   autoconfigure:
     exclude: org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
 
+  # 文件上传配置
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 5MB
+      max-request-size: 10MB
+
 mybatis-plus:
   configuration:
     # 开启驼峰命名
@@ -24,3 +31,11 @@ mybatis-plus:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
   # 实体扫描
   type-handlers-package: com.mathpractice.entity
+
+# 文件上传配置
+file:
+  upload:
+    # 文件上传路径（相对于项目根目录）
+    path: uploads/images
+    # 文件访问URL前缀
+    url-prefix: /api/images/

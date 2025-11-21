@@ -22,6 +22,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
     private final DifficultyLevelMapper difficultyLevelMapper;
     private final QuestionAnswerMapper questionAnswerMapper;
     private final QuestionOptionMapper questionOptionMapper;
+    private final QuestionImageMapper questionImageMapper;
 
     @Override
     public List<Question> getQuestionBank(String type, String difficulty) {
@@ -51,7 +52,43 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
 
     @Override
     public List<Question> getAllQuestions() {
-        return questionMapper.selectAllWithDetails();
+        List<Question> questions = questionMapper.selectAllWithDetails();
+        // 为每个题目加载选项和答案
+        for (Question question : questions) {
+            loadQuestionDetails(question);
+        }
+        return questions;
+    }
+    
+    /**
+     * 加载题目的详细信息（选项、答案、图片）
+     */
+    private void loadQuestionDetails(Question question) {
+        if (question == null || question.getId() == null) {
+            return;
+        }
+        
+        Integer questionId = question.getId();
+        
+        // 加载答案
+        QueryWrapper<QuestionAnswer> answerWrapper = new QueryWrapper<>();
+        answerWrapper.eq("question_id", questionId).orderByAsc("sort_order");
+        List<QuestionAnswer> answers = questionAnswerMapper.selectList(answerWrapper);
+        question.setAnswers(answers);
+        
+        // 如果是选择题，加载选项
+        if (question.getTypeId() != null && (question.getTypeId() == 1 || question.getTypeId() == 2)) {
+            QueryWrapper<QuestionOption> optionWrapper = new QueryWrapper<>();
+            optionWrapper.eq("question_id", questionId).orderByAsc("sort_order");
+            List<QuestionOption> options = questionOptionMapper.selectList(optionWrapper);
+            question.setOptions(options);
+        }
+        
+        // 加载图片
+        QueryWrapper<QuestionImage> imageWrapper = new QueryWrapper<>();
+        imageWrapper.eq("question_id", questionId);
+        List<QuestionImage> images = questionImageMapper.selectList(imageWrapper);
+        question.setImages(images);
     }
 
     @Override
@@ -90,6 +127,12 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
                 List<QuestionOption> options = questionOptionMapper.selectList(optionWrapper);
                 question.setOptions(options);
             }
+
+            // 加载图片
+            QueryWrapper<QuestionImage> imageWrapper = new QueryWrapper<>();
+            imageWrapper.eq("question_id", questionId);
+            List<QuestionImage> images = questionImageMapper.selectList(imageWrapper);
+            question.setImages(images);
         }
         return question;
     }
@@ -100,20 +143,17 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         // 保存题目基本信息
         int result = questionMapper.insert(question);
         if (result > 0 && question.getId() != null) {
+            Integer questionId = question.getId();
+            
             // 保存答案
-            if (question.getAnswers() != null) {
-                for (QuestionAnswer answer : question.getAnswers()) {
-                    answer.setQuestionId(question.getId());
-                    questionAnswerMapper.insert(answer);
-                }
-            }
+            saveAnswers(questionId, question.getAnswers());
+            
             // 保存选项（如果是选择题）
-            if (question.getOptions() != null) {
-                for (QuestionOption option : question.getOptions()) {
-                    option.setQuestionId(question.getId());
-                    questionOptionMapper.insert(option);
-                }
-            }
+            saveOptions(questionId, question.getOptions());
+            
+            // 保存图片
+            saveImages(questionId, question.getImages());
+            
             return true;
         }
         return false;
@@ -125,29 +165,16 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         // 更新题目基本信息
         int result = questionMapper.updateById(question);
         if (result > 0) {
-            // 删除原有答案和选项
-            QueryWrapper<QuestionAnswer> answerWrapper = new QueryWrapper<>();
-            answerWrapper.eq("question_id", question.getId());
-            questionAnswerMapper.delete(answerWrapper);
-
-            QueryWrapper<QuestionOption> optionWrapper = new QueryWrapper<>();
-            optionWrapper.eq("question_id", question.getId());
-            questionOptionMapper.delete(optionWrapper);
-
-            // 保存新的答案
-            if (question.getAnswers() != null) {
-                for (QuestionAnswer answer : question.getAnswers()) {
-                    answer.setQuestionId(question.getId());
-                    questionAnswerMapper.insert(answer);
-                }
-            }
-            // 保存新的选项
-            if (question.getOptions() != null) {
-                for (QuestionOption option : question.getOptions()) {
-                    option.setQuestionId(question.getId());
-                    questionOptionMapper.insert(option);
-                }
-            }
+            Integer questionId = question.getId();
+            
+            // 删除原有关联数据
+            deleteRelatedData(questionId);
+            
+            // 保存新的关联数据
+            saveAnswers(questionId, question.getAnswers());
+            saveOptions(questionId, question.getOptions());
+            saveImages(questionId, question.getImages());
+            
             return true;
         }
         return false;
@@ -156,6 +183,53 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
     @Override
     @Transactional
     public boolean removeQuestionWithDetails(Integer questionId) {
+        // 删除关联数据（由于设置了CASCADE，删除题目时会自动删除，但显式删除更清晰）
+        deleteRelatedData(questionId);
+        
+        // 删除题目
+        return questionMapper.deleteById(questionId) > 0;
+    }
+
+    /**
+     * 保存答案
+     */
+    private void saveAnswers(Integer questionId, List<QuestionAnswer> answers) {
+        if (answers != null && !answers.isEmpty()) {
+            for (QuestionAnswer answer : answers) {
+                answer.setQuestionId(questionId);
+                questionAnswerMapper.insert(answer);
+            }
+        }
+    }
+
+    /**
+     * 保存选项
+     */
+    private void saveOptions(Integer questionId, List<QuestionOption> options) {
+        if (options != null && !options.isEmpty()) {
+            for (QuestionOption option : options) {
+                option.setQuestionId(questionId);
+                questionOptionMapper.insert(option);
+            }
+        }
+    }
+
+    /**
+     * 保存图片
+     */
+    private void saveImages(Integer questionId, List<QuestionImage> images) {
+        if (images != null && !images.isEmpty()) {
+            for (QuestionImage image : images) {
+                image.setQuestionId(questionId);
+                questionImageMapper.insert(image);
+            }
+        }
+    }
+
+    /**
+     * 删除关联数据（答案、选项、图片）
+     */
+    private void deleteRelatedData(Integer questionId) {
         // 删除答案
         QueryWrapper<QuestionAnswer> answerWrapper = new QueryWrapper<>();
         answerWrapper.eq("question_id", questionId);
@@ -166,8 +240,10 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         optionWrapper.eq("question_id", questionId);
         questionOptionMapper.delete(optionWrapper);
 
-        // 删除题目
-        return questionMapper.deleteById(questionId) > 0;
+        // 删除图片
+        QueryWrapper<QuestionImage> imageWrapper = new QueryWrapper<>();
+        imageWrapper.eq("question_id", questionId);
+        questionImageMapper.delete(imageWrapper);
     }
 
     @Override

@@ -46,6 +46,9 @@ public class Question {
     private List<QuestionOption> options;
 
     @TableField(exist = false)
+    private List<QuestionImage> images;
+
+    @TableField(exist = false)
     private QuestionType questionType;
 
     @TableField(exist = false)
