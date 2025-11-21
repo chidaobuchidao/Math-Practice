@@ -121,6 +121,7 @@ public class PaperServiceImpl extends ServiceImpl<PaperMapper, Paper> implements
                         studentAnswerDouble = Double.parseDouble(studentAnswerString);
                     } catch (NumberFormatException e) {
                         // 如果无法转换为数字，可能是选择题的选项键（A, B, C, D）
+                        // 对于多选题（如 "A,B,C"），保留原始字符串用于后续比较
                         // 将选项键转换为数字存储：A=1, B=2, C=3, D=4, ...
                         if (studentAnswerString != null && studentAnswerString.length() > 0) {
                             // 去除空格并转换为大写
@@ -129,6 +130,7 @@ public class PaperServiceImpl extends ServiceImpl<PaperMapper, Paper> implements
                                 char firstChar = cleanAnswer.charAt(0);
                                 if (firstChar >= 'A' && firstChar <= 'Z') {
                                     // 单个选项键（如 'A'）或多选题的第一个选项键（如 'A,B'）
+                                    // 注意：对于多选题，这里只存储第一个选项的数字，完整答案在 studentAnswerString 中保留
                                     studentAnswerDouble = (double) (firstChar - 'A' + 1);
                                 }
                             }
@@ -155,8 +157,16 @@ public class PaperServiceImpl extends ServiceImpl<PaperMapper, Paper> implements
                     
                     // 对于多选题，需要比较所有选项（排序后比较）
                     if ("multiple".equals(answerType) && studentContent != null && correctContent != null) {
+                        // 分割并去除每个选项的空格
                         String[] studentOptions = studentContent.split(",");
                         String[] correctOptions = correctContent.split(",");
+                        // 去除空格并转换为大写
+                        for (int i = 0; i < studentOptions.length; i++) {
+                            studentOptions[i] = studentOptions[i].trim().toUpperCase();
+                        }
+                        for (int i = 0; i < correctOptions.length; i++) {
+                            correctOptions[i] = correctOptions[i].trim().toUpperCase();
+                        }
                         Arrays.sort(studentOptions);
                         Arrays.sort(correctOptions);
                         isCorrect = Arrays.equals(studentOptions, correctOptions);
@@ -194,8 +204,14 @@ public class PaperServiceImpl extends ServiceImpl<PaperMapper, Paper> implements
         // 5. 更新试卷信息
         paper.setCorrectCount(correctCount);
         // 计算得分并保留整数
-        double calculatedScore = request.getScore() != null ? request.getScore() :
-                (double) correctCount / paper.getTotalQuestions() * 100;
+        // 防止除零错误：如果题目数为0，得分设为0
+        double calculatedScore;
+        if (paper.getTotalQuestions() == null || paper.getTotalQuestions() == 0) {
+            calculatedScore = request.getScore() != null ? request.getScore() : 0.0;
+        } else {
+            calculatedScore = request.getScore() != null ? request.getScore() :
+                    (double) correctCount / paper.getTotalQuestions() * 100;
+        }
         paper.setScore((double) Math.round(calculatedScore)); // 四舍五入到整数
         paper.setTimeSpent(request.getTimeSpent());
 
@@ -228,11 +244,44 @@ public class PaperServiceImpl extends ServiceImpl<PaperMapper, Paper> implements
             List<QuestionAnswer> answers = questionAnswerMapper.selectByQuestionId(questionId);
 
             if (answers != null && !answers.isEmpty()) {
-                // 查找正确答案（is_correct = true）
+                // 查找所有正确答案（is_correct = true）
+                List<QuestionAnswer> correctAnswers = new ArrayList<>();
                 for (QuestionAnswer answer : answers) {
                     if (Boolean.TRUE.equals(answer.getIsCorrect())) {
-                        return answer;
+                        correctAnswers.add(answer);
                     }
+                }
+                
+                if (correctAnswers.isEmpty()) {
+                    return null;
+                }
+                
+                // 如果只有一个正确答案，直接返回
+                if (correctAnswers.size() == 1) {
+                    return correctAnswers.get(0);
+                }
+                
+                // 对于多选题，可能有多个正确答案行，需要合并为一个
+                // 检查答案类型
+                String answerType = correctAnswers.get(0).getAnswerType();
+                if ("multiple".equals(answerType)) {
+                    // 合并所有正确答案内容为逗号分隔的字符串
+                    List<String> answerContents = new ArrayList<>();
+                    for (QuestionAnswer answer : correctAnswers) {
+                        if (answer.getContent() != null && !answer.getContent().trim().isEmpty()) {
+                            answerContents.add(answer.getContent().trim());
+                        }
+                    }
+                    // 创建合并后的答案对象
+                    QuestionAnswer mergedAnswer = new QuestionAnswer();
+                    mergedAnswer.setAnswerType(answerType);
+                    mergedAnswer.setContent(String.join(",", answerContents));
+                    mergedAnswer.setIsCorrect(true);
+                    mergedAnswer.setSortOrder(0);
+                    return mergedAnswer;
+                } else {
+                    // 非多选题，返回第一个正确答案
+                    return correctAnswers.get(0);
                 }
             }
             return null;

@@ -198,14 +198,16 @@ public class QuestionGeneratorTool {
 
         question.setContent(content);
 
-        // 创建答案对象
+        // 创建答案对象列表
         QuestionAnswer questionAnswer = new QuestionAnswer();
         questionAnswer.setAnswerType("number");
         questionAnswer.setContent(answer.toString());
         questionAnswer.setIsCorrect(true);
         questionAnswer.setSortOrder(0);
 
-        question.setQuestionAnswer(questionAnswer);
+        List<QuestionAnswer> answers = new ArrayList<>();
+        answers.add(questionAnswer);
+        question.setAnswers(answers);
         question.setAnalysis(generateAnalysis(content, answer));
     }
 
@@ -278,14 +280,16 @@ public class QuestionGeneratorTool {
 
         question.setContent(content);
 
-        // 创建答案对象
+        // 创建答案对象列表
         QuestionAnswer questionAnswer = new QuestionAnswer();
         questionAnswer.setAnswerType("number");
         questionAnswer.setContent(answer.toString());
         questionAnswer.setIsCorrect(true);
         questionAnswer.setSortOrder(0);
 
-        question.setQuestionAnswer(questionAnswer);
+        List<QuestionAnswer> answers = new ArrayList<>();
+        answers.add(questionAnswer);
+        question.setAnswers(answers);
         question.setAnalysis(generateAnalysis(content, answer));
     }
 
@@ -322,14 +326,16 @@ public class QuestionGeneratorTool {
 
         question.setContent(content);
 
-        // 创建答案对象
+        // 创建答案对象列表
         QuestionAnswer questionAnswer = new QuestionAnswer();
         questionAnswer.setAnswerType("number");
         questionAnswer.setContent(answer.toString());
         questionAnswer.setIsCorrect(true);
         questionAnswer.setSortOrder(0);
 
-        question.setQuestionAnswer(questionAnswer);
+        List<QuestionAnswer> answers = new ArrayList<>();
+        answers.add(questionAnswer);
+        question.setAnswers(answers);
         question.setAnalysis(generateAnalysis(content, answer));
     }
 

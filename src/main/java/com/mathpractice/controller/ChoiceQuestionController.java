@@ -86,10 +86,15 @@ public class ChoiceQuestionController {
             @RequestBody ChoiceQuestionRequest request) {
         try {
             // 验证请求
+            if (request.getTypeId() == null) {
+                return ApiResponse.error("题目类型ID不能为空");
+            }
             if (request.getTypeId() == 1) {
                 validateRequest(request, true);
             } else if (request.getTypeId() == 2) {
                 validateRequest(request, false);
+            } else {
+                return ApiResponse.error("无效的题目类型ID，只支持单选题(1)和多选题(2)");
             }
 
             // 构建Question对象
@@ -186,14 +191,29 @@ public class ChoiceQuestionController {
         }
         String answerType = typeId == 1 ? "single" : "multiple";
         List<QuestionAnswer> answers = new ArrayList<>();
-        for (int i = 0; i < correctAnswers.size(); i++) {
+        
+        if (typeId == 1) {
+            // 单选题：每个答案创建一个 QuestionAnswer 行
+            for (int i = 0; i < correctAnswers.size(); i++) {
+                QuestionAnswer answer = new QuestionAnswer();
+                answer.setAnswerType(answerType);
+                answer.setContent(correctAnswers.get(i));
+                answer.setIsCorrect(true);
+                answer.setSortOrder(i);
+                answers.add(answer);
+            }
+        } else {
+            // 多选题：将所有答案合并为一个逗号分隔的字符串，存储在单个 QuestionAnswer 行中
+            // 这样与 PaperServiceImpl 中的比较逻辑保持一致
+            String mergedContent = String.join(",", correctAnswers);
             QuestionAnswer answer = new QuestionAnswer();
             answer.setAnswerType(answerType);
-            answer.setContent(correctAnswers.get(i));
+            answer.setContent(mergedContent);
             answer.setIsCorrect(true);
-            answer.setSortOrder(i);
+            answer.setSortOrder(0);
             answers.add(answer);
         }
+        
         return answers;
     }
 
