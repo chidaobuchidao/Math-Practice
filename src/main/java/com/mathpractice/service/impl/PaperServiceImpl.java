@@ -274,17 +274,6 @@ public class PaperServiceImpl extends ServiceImpl<PaperMapper, Paper> implements
         }
     }
 
-    /**
-     * 格式化答案为字符串（用于文本比较）
-     */
-    private String formatAnswer(Double answer) {
-        if (answer == null) return null;
-        if (answer == Math.floor(answer)) {
-            return String.valueOf(answer.intValue());
-        } else {
-            return String.format("%.2f", answer);
-        }
-    }
     
     /**
      * 将数字转换为选项键（1=A, 2=B, 3=C, 4=D, ...）
