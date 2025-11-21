@@ -2,9 +2,11 @@ package com.mathpractice.exception;
 
 import com.mathpractice.response.ResponseCode;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
-public class BusinessException extends RuntimeException{
+@EqualsAndHashCode(callSuper = false)
+public class BusinessException extends RuntimeException {
     private Integer code;
     private String message;
 

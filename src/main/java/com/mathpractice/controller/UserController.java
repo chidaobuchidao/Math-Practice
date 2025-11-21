@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.mathpractice.entity.User;
-import com.mathpractice.exception.BusinessException;
 import com.mathpractice.response.ApiResponse;
 import com.mathpractice.response.ResponseCode;
 import com.mathpractice.service.UserService;

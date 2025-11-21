@@ -25,14 +25,21 @@ public class QuestionGeneratorTool {
 
     private final Random random = new Random();
 
-    // 类型映射
-    private static final String TYPE_CALCULATION = "calculation"; // 计算题
-    private static final String TYPE_WORD_PROBLEM = "word_problem"; // 应用题
+    // 题目类型ID映射（根据数据库question_types表）
+    // id=1: single_choice (单选题)
+    // id=2: multiple_choice (多选题)
+    // id=3: fill_blank (填空题)
+    // id=4: true_false (判断题)
+    // id=5: calculation (计算题)
+    // id=6: essay (解答题)
+    // id=7: word_problem (应用题)
 
-    // 难度映射
-    private static final String DIFFICULTY_EASY = "easy";
-    private static final String DIFFICULTY_MEDIUM = "medium";
-    private static final String DIFFICULTY_HARD = "hard";
+    // 难度ID映射（根据数据库difficulty_levels表）
+    // id=1: beginner (入门)
+    // id=2: easy (简单)
+    // id=3: medium (中等)
+    // id=4: hard (困难)
+    // id=5: challenge (挑战)
 
     /**
      * 生成题目列表
@@ -66,20 +73,23 @@ public class QuestionGeneratorTool {
         Question question = new Question();
 
         // 设置新数据库结构所需的字段
-        question.setTypeId(5); // 5对应计算题类型
+        // 根据数据库：id=5对应calculation(计算题)
+        // 所有生成的题目都是计算题类型
+        question.setTypeId(5); // 5对应calculation(计算题)类型
+        
         question.setSubject("数学");
         question.setKnowledgePoint(generateKnowledgePoint(type));
 
-        // 设置难度ID映射
+        // 设置难度ID映射（根据数据库difficulty_levels表）
         switch (difficulty) {
             case "easy":
-                question.setDifficultyId(2); // 2对应简单难度
+                question.setDifficultyId(2); // id=2对应easy(简单)
                 break;
             case "medium":
-                question.setDifficultyId(3); // 3对应中等难度
+                question.setDifficultyId(3); // id=3对应medium(中等)
                 break;
             case "hard":
-                question.setDifficultyId(4); // 4对应困难难度
+                question.setDifficultyId(4); // id=4对应hard(困难)
                 break;
             default:
                 question.setDifficultyId(2); // 默认简单难度
@@ -353,8 +363,6 @@ public class QuestionGeneratorTool {
         int num1 = getRandomNumber(1, 30);
         int num2 = getRandomNumber(1, 20);
         int num3 = getRandomNumber(1, 15);
-
-        String[] operators = {"+", "-", "×", "÷"};
 
         if (random.nextBoolean()) {
             return "(" + num1 + " + " + num2 + ") × " + num3 + " = ?";

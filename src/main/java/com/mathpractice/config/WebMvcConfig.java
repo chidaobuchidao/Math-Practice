@@ -2,6 +2,7 @@ package com.mathpractice.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.lang.NonNull;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -21,7 +22,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
     private String urlPrefix;
 
     @Override
-    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+    public void addResourceHandlers(@NonNull ResourceHandlerRegistry registry) {
         // 配置图片访问路径
         // 将 /api/images/** 映射到文件系统的 uploads/images/ 目录
         String absolutePath = Paths.get(uploadPath).toAbsolutePath().toString();
