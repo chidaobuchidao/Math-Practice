@@ -171,7 +171,14 @@ public class PaperServiceImpl extends ServiceImpl<PaperMapper, Paper> implements
                         Arrays.sort(correctOptions);
                         isCorrect = Arrays.equals(studentOptions, correctOptions);
                     } else {
-                        isCorrect = correctContent != null && correctContent.equals(studentContent);
+                        // 单选题和文本类型：归一化为大写并去除空格后比较，保持一致性
+                        if (studentContent != null && correctContent != null) {
+                            String normalizedStudent = studentContent.trim().toUpperCase();
+                            String normalizedCorrect = correctContent.trim().toUpperCase();
+                            isCorrect = normalizedStudent.equals(normalizedCorrect);
+                        } else {
+                            isCorrect = false;
+                        }
                     }
                 } else {
                     // 数字类型或分数类型：数值比较
