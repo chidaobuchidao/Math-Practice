@@ -41,12 +41,34 @@ public class QuestionGenerationController {
             // 生成题目
             List<Question> questions = questionGeneratorTool.generateQuestions(request);
 
-            // 保存到数据库
-            boolean saveResult = questionService.saveBatch(questions);
+            // 批量保存题目及其关联数据（答案存储在question_answers表中）
+            int successCount = 0;
+            int failCount = 0;
+            for (Question question : questions) {
+                try {
+                    // 使用saveQuestionWithDetails方法保存题目和答案
+                    // 答案会通过外键question_id保存到question_answers表
+                    boolean saved = questionService.saveQuestionWithDetails(question);
+                    if (saved) {
+                        successCount++;
+                    } else {
+                        failCount++;
+                        log.warn("保存题目失败: {}", question.getContent());
+                    }
+                } catch (Exception e) {
+                    failCount++;
+                    log.error("保存题目时发生异常: {}", question.getContent(), e);
+                }
+            }
 
-            if (saveResult) {
-                log.info("成功生成并保存 {} 道题目", questions.size());
-                return ApiResponse.success(questions, "成功生成 " + questions.size() + " 道题目");
+            if (successCount > 0) {
+                log.info("成功生成并保存 {}/{} 道题目", successCount, questions.size());
+                if (failCount > 0) {
+                    return ApiResponse.success(questions, 
+                        String.format("成功生成 %d 道题目，%d 道保存失败", successCount, failCount));
+                } else {
+                    return ApiResponse.success(questions, "成功生成并保存 " + successCount + " 道题目");
+                }
             } else {
                 return ApiResponse.error("保存题目到数据库失败");
             }
@@ -75,10 +97,23 @@ public class QuestionGenerationController {
             request.setNumberRange(range);
 
             List<Question> questions = questionGeneratorTool.generateQuestions(request);
-            boolean saveResult = questionService.saveBatch(questions);
+            
+            // 批量保存题目及其关联数据（答案存储在question_answers表中）
+            int successCount = 0;
+            for (Question question : questions) {
+                try {
+                    // 使用saveQuestionWithDetails方法保存题目和答案
+                    // 答案会通过外键question_id保存到question_answers表
+                    if (questionService.saveQuestionWithDetails(question)) {
+                        successCount++;
+                    }
+                } catch (Exception e) {
+                    log.error("保存题目时发生异常: {}", question.getContent(), e);
+                }
+            }
 
-            if (saveResult) {
-                return ApiResponse.success(questions, "快速生成 " + questions.size() + " 道题目");
+            if (successCount > 0) {
+                return ApiResponse.success(questions, "快速生成并保存 " + successCount + " 道题目");
             } else {
                 return ApiResponse.error("保存题目失败");
             }

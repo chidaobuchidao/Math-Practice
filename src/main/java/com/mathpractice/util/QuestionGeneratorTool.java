@@ -198,16 +198,21 @@ public class QuestionGeneratorTool {
 
         question.setContent(content);
 
-        // 创建答案对象列表
+        // 创建答案对象并添加到答案列表
+        // 答案需要保存在question_answers表中，通过question_id外键关联
         QuestionAnswer questionAnswer = new QuestionAnswer();
         questionAnswer.setAnswerType("number");
-        questionAnswer.setContent(answer.toString());
+        // 格式化答案：整数不显示小数点，小数保留2位
+        String answerContent = formatAnswer(answer);
+        questionAnswer.setContent(answerContent);
         questionAnswer.setIsCorrect(true);
-        questionAnswer.setSortOrder(0);
-
+        questionAnswer.setSortOrder(1);
+        
+        // 使用answers列表存储答案（符合数据库结构）
         List<QuestionAnswer> answers = new ArrayList<>();
         answers.add(questionAnswer);
         question.setAnswers(answers);
+        
         question.setAnalysis(generateAnalysis(content, answer));
     }
 
@@ -280,16 +285,21 @@ public class QuestionGeneratorTool {
 
         question.setContent(content);
 
-        // 创建答案对象列表
+        // 创建答案对象并添加到答案列表
+        // 答案需要保存在question_answers表中，通过question_id外键关联
         QuestionAnswer questionAnswer = new QuestionAnswer();
         questionAnswer.setAnswerType("number");
-        questionAnswer.setContent(answer.toString());
+        // 格式化答案：整数不显示小数点，小数保留2位
+        String answerContent = formatAnswer(answer);
+        questionAnswer.setContent(answerContent);
         questionAnswer.setIsCorrect(true);
-        questionAnswer.setSortOrder(0);
-
+        questionAnswer.setSortOrder(1);
+        
+        // 使用answers列表存储答案（符合数据库结构）
         List<QuestionAnswer> answers = new ArrayList<>();
         answers.add(questionAnswer);
         question.setAnswers(answers);
+        
         question.setAnalysis(generateAnalysis(content, answer));
     }
 
@@ -326,16 +336,21 @@ public class QuestionGeneratorTool {
 
         question.setContent(content);
 
-        // 创建答案对象列表
+        // 创建答案对象并添加到答案列表
+        // 答案需要保存在question_answers表中，通过question_id外键关联
         QuestionAnswer questionAnswer = new QuestionAnswer();
         questionAnswer.setAnswerType("number");
-        questionAnswer.setContent(answer.toString());
+        // 格式化答案：整数不显示小数点，小数保留2位
+        String answerContent = formatAnswer(answer);
+        questionAnswer.setContent(answerContent);
         questionAnswer.setIsCorrect(true);
-        questionAnswer.setSortOrder(0);
-
+        questionAnswer.setSortOrder(1);
+        
+        // 使用answers列表存储答案（符合数据库结构）
         List<QuestionAnswer> answers = new ArrayList<>();
         answers.add(questionAnswer);
         question.setAnswers(answers);
+        
         question.setAnalysis(generateAnalysis(content, answer));
     }
 
@@ -497,5 +512,21 @@ public class QuestionGeneratorTool {
             }
         }
         return 1;
+    }
+
+    /**
+     * 格式化答案内容
+     * 整数不显示小数点，小数保留有效位数（去除末尾0）
+     */
+    private String formatAnswer(BigDecimal answer) {
+        if (answer == null) {
+            return "0";
+        }
+        // 如果是整数，直接返回整数形式
+        if (answer.scale() == 0 || answer.stripTrailingZeros().scale() <= 0) {
+            return answer.toBigInteger().toString();
+        }
+        // 小数去除末尾0
+        return answer.stripTrailingZeros().toPlainString();
     }
 }
