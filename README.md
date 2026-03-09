@@ -125,7 +125,7 @@ spring:
 
 ### 3. 数据表说明
 
-项目使用 JPA 自动建表，主要数据表包括：
+项目所使用的数据库文件在[Math-Practice-前端](https://github.com/chidaobuchidao/Math-Practice-view)中，请自行导入=w=，主要数据表包括：
 
 - **用户管理**: `users`
 - **题目管理**: `questions`, `question_options`, `question_answers`, `question_images`
